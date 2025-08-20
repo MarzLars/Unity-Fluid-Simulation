@@ -1,0 +1,30 @@
+// Pressure.compute
+#pragma kernel PressureJacobi
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> _Target;
+Texture2D<float4> _PressureTex;
+Texture2D<float4> _DivergenceTex;
+
+float2 _Resolution;
+
+[numthreads(8,8,1)]
+void PressureJacobi(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution.x || id.y >= (uint)_Resolution.y) return;
+
+    int2 p = int2(id.xy);
+    int2 left  = int2(max(p.x - 1, 0), p.y);
+    int2 right = int2(min(p.x + 1, (int)_Resolution.x - 1), p.y);
+    int2 up    = int2(p.x, min(p.y + 1, (int)_Resolution.y - 1));
+    int2 down  = int2(p.x, max(p.y - 1, 0));
+
+    float L = _PressureTex[left].x;
+    float R = _PressureTex[right].x;
+    float U = _PressureTex[up].x;
+    float D = _PressureTex[down].x;
+    float div = _DivergenceTex[p].x;
+
+    float pressure = (L + R + U + D - div) * 0.25;
+    _Target[p] = float4(pressure, 0, 0, 1);
+}

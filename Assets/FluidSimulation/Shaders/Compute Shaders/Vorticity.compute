@@ -1,0 +1,40 @@
+// Vorticity.compute
+#pragma kernel Vorticity
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> _Target;
+Texture2D<float4> _VelocityTex;
+Texture2D<float4> _CurlTex;
+
+float2 _Resolution;
+float _Curl;
+float _Dt;
+
+[numthreads(8,8,1)]
+void Vorticity(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution.x || id.y >= (uint)_Resolution.y) return;
+
+    int2 p = int2(id.xy);
+    int2 left  = int2(max(p.x - 1, 0), p.y);
+    int2 right = int2(min(p.x + 1, (int)_Resolution.x - 1), p.y);
+    int2 up    = int2(p.x, min(p.y + 1, (int)_Resolution.y - 1));
+    int2 down  = int2(p.x, max(p.y - 1, 0));
+
+    float L = _CurlTex[left].x;
+    float R = _CurlTex[right].x;
+    float U = _CurlTex[up].x;
+    float D = _CurlTex[down].x;
+    float C = _CurlTex[p].x;
+
+    float2 force = 0.5 * float2(abs(U) - abs(D), abs(R) - abs(L));
+    float len = length(force) + 0.0001;
+    force /= len;
+    force *= _Curl * C;
+    force.y *= -1.0;
+
+    float4 vel = _VelocityTex[p];
+    vel.xy += force * _Dt;
+    vel.xy = clamp(vel.xy, -1000.0, 1000.0);
+    _Target[p] = float4(vel.xy, 0, 1);
+}

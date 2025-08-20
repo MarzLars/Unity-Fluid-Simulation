@@ -1,0 +1,59 @@
+// Splat.compute
+#pragma kernel SplatVelocity
+#pragma kernel SplatDye
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> _Target;
+Texture2D<float4> _VelocityTex;
+Texture2D<float4> _SourceTex;
+
+float2 _Resolution;
+float2 _SplatPoint;   // normalized 0..1 (x,y)
+float4 _SplatColor;
+float2 _Force;
+float  _SplatRadius;
+float  _AspectRatio;
+
+[numthreads(8,8,1)]
+void SplatVelocity(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution.x || id.y >= (uint)_Resolution.y) return;
+    int2 p = int2(id.xy);
+    float2 uv = (float2(p) + 0.5) / _Resolution;
+
+    float2 diff = uv - _SplatPoint;
+    diff.x *= _AspectRatio;
+    
+    float dist = dot(diff, diff);
+    float falloff = exp(-dist / _SplatRadius);
+
+    float4 vel = _VelocityTex[p];
+    vel.xy += _Force * falloff;
+    
+    // Clamp velocities to prevent instability
+    vel.xy = clamp(vel.xy, -1000.0, 1000.0);
+    
+    _Target[p] = vel;
+}
+
+[numthreads(8,8,1)]
+void SplatDye(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution.x || id.y >= (uint)_Resolution.y) return;
+    int2 p = int2(id.xy);
+    float2 uv = (float2(p) + 0.5) / _Resolution;
+
+    float2 diff = uv - _SplatPoint;
+    diff.x *= _AspectRatio;
+    
+    float dist = dot(diff, diff);
+    float falloff = exp(-dist / _SplatRadius);
+
+    float4 baseC = _SourceTex[p];
+    baseC.rgb += _SplatColor.rgb * falloff;
+    
+    // Enhanced alpha calculation like JavaScript reference
+    baseC.a = max(baseC.a, max(baseC.r, max(baseC.g, baseC.b)));
+    
+    _Target[p] = baseC;
+}

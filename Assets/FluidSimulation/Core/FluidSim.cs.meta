@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: dee7162a32b11094594e795b5fde818a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - AdvectCs: {fileID: 7200000, guid: d9acf03bf02d2644daa14bb492305f94, type: 3}
+  - CurlCs: {fileID: 7200000, guid: 11547cd4084bec54790473d3eaba42f2, type: 3}
+  - VorticityCs: {fileID: 7200000, guid: e16ef4b3cfafc634ea7a70b74c888653, type: 3}
+  - DivergenceCs: {fileID: 7200000, guid: e9b9fa6fcd902114191e9a7e42066f1b, type: 3}
+  - PressureCs: {fileID: 7200000, guid: a02f756910ed640479c1abd6128e984c, type: 3}
+  - GradientSubtractCs: {fileID: 7200000, guid: b4e5bdfa6dfb3514a842c659e22f1658, type: 3}
+  - SplatCs: {fileID: 7200000, guid: 86711f4e904085747916a779a6f54b5d, type: 3}
+  - CopyCs: {fileID: 7200000, guid: 7c4e0e44ab226054ea7401f60fba823e, type: 3}
+  - DisplayMaterial: {fileID: 2100000, guid: cd183b9f291363540b16d2d8a87a325a, type: 2}
+  - OutputTexture: {fileID: 8400000, guid: 1d9ecfd7c7fd33d4585d62a412e74c73, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,79 @@
+// Advect.compute
+// Simplified semi-Lagrangian advection without samplers (uses explicit texel fetch + manual bilinear)
+
+#pragma kernel Advect
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> _Target;
+Texture2D<float4>   _VelocityTex;   // RG = velocity, BA unused
+Texture2D<float4>   _SourceTex;     // Quantity being advected (velocity or dye)
+
+float2 _Resolution;   // (width, height)
+float  _Dt;           // timestep
+float  _Dissipation;  // dissipation factor
+int    _IsVelocity;   // 1 if advecting velocity field
+
+// Clamp integer pixel coordinate to valid bounds
+int2 ClampPixel(int2 p, int2 size)
+{
+    return int2(clamp(p.x, 0, size.x - 1), clamp(p.y, 0, size.y - 1));
+}
+
+float4 SampleLinear(Texture2D<float4> tex, float2 uv, float2 res)
+{
+    // uv in [0,1]
+    float2 pos = uv * res - 0.5;              // shift to pixel centers
+    float2 baseF = floor(pos);
+    float2 f     = frac(pos);
+
+    int2 i00 = ClampPixel(int2(baseF),               int2(res));
+    int2 i10 = ClampPixel(int2(baseF) + int2(1,0),   int2(res));
+    int2 i01 = ClampPixel(int2(baseF) + int2(0,1),   int2(res));
+    int2 i11 = ClampPixel(int2(baseF) + int2(1,1),   int2(res));
+
+    float4 c00 = tex.Load(int3(i00, 0));
+    float4 c10 = tex.Load(int3(i10, 0));
+    float4 c01 = tex.Load(int3(i01, 0));
+    float4 c11 = tex.Load(int3(i11, 0));
+
+    float4 cx0 = lerp(c00, c10, f.x);
+    float4 cx1 = lerp(c01, c11, f.x);
+    return lerp(cx0, cx1, f.y);
+}
+
+[numthreads(8,8,1)]
+void Advect(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution.x || id.y >= (uint)_Resolution.y) return;
+
+    float2 res        = _Resolution;
+    float2 texelSize  = 1.0 / res;
+    float2 uv         = (float2(id.xy) + 0.5) * texelSize; // centre of this cell
+
+    // Velocity at current cell (no filtering needed for backtrace start)
+    float2 vel = _VelocityTex.Load(int3(id.xy, 0)).xy;
+
+    // Backtrace
+    float2 coord = uv - _Dt * vel * texelSize; // dt * vel * texelSize matches original JS logic
+
+    // Clamp to valid sample region (avoid sampling outside grid)
+    float2 minUV = texelSize * 0.5;
+    float2 maxUV = 1.0 - minUV;
+    coord = clamp(coord, minUV, maxUV);
+
+    // Bilinear fetch of source quantity at backtraced position
+    float4 src = SampleLinear(_SourceTex, coord, res);
+
+    // Dissipation
+    src /= (1.0 + _Dissipation * _Dt);
+
+    if (_IsVelocity == 1)
+    {
+        // No-slip boundaries: zero normal component at borders
+        if (id.x == 0 || id.x == (uint)res.x - 1) src.x = 0;
+        if (id.y == 0 || id.y == (uint)res.y - 1) src.y = 0;
+        src.zw = 0;
+    }
+
+    _Target[id.xy] = src;
+}

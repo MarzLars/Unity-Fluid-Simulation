@@ -1,0 +1,34 @@
+// Divergence.compute
+#pragma kernel Divergence
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> _Target;
+Texture2D<float4> _VelocityTex;
+
+float2 _Resolution;
+
+[numthreads(8,8,1)]
+void Divergence(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution.x || id.y >= (uint)_Resolution.y) return;
+
+    int2 p = int2(id.xy);
+    int2 left  = int2(max(p.x - 1, 0), p.y);
+    int2 right = int2(min(p.x + 1, (int)_Resolution.x - 1), p.y);
+    int2 up    = int2(p.x, min(p.y + 1, (int)_Resolution.y - 1));
+    int2 down  = int2(p.x, max(p.y - 1, 0));
+
+    float L = _VelocityTex[left].x;
+    float R = _VelocityTex[right].x;
+    float U = _VelocityTex[up].y;
+    float D = _VelocityTex[down].y;
+    float2 C = _VelocityTex[p].xy;
+
+    if (p.x == 0) L = -C.x;
+    if (p.x == (int)_Resolution.x - 1) R = -C.x;
+    if (p.y == (int)_Resolution.y - 1) U = -C.y;
+    if (p.y == 0) D = -C.y;
+
+    float div = 0.5 * (R - L + U - D);
+    _Target[p] = float4(div, 0, 0, 1);
+}

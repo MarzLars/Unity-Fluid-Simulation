@@ -1,0 +1,15 @@
+// Copy / Multiply utility
+#pragma kernel Multiply
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> _Target;
+Texture2D<float4> _SourceTex;
+float _Value;
+
+[numthreads(8,8,1)]
+void Multiply(uint3 id : SV_DispatchThreadID)
+{
+    uint2 p = id.xy;
+    int2 ip = int2(p);
+    _Target[ip] = _SourceTex[ip] * _Value;
+}

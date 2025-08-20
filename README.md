@@ -1,4 +1,8 @@
-# WebGL Fluid Simulation
+# ~~WebGL~~ Unity Fluid Simulation
+
+Originally a WebGL fluid simulation, now **_poorly_** ported to Unity.
+
+**_Old/Original README below:_**
 
 [Play here](https://paveldogreat.github.io/WebGL-Fluid-Simulation/)
 
